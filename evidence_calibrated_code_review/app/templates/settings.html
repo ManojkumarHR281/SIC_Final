@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Settings · Evidence Review{% endblock %}
+{% block crumb %}Settings{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">System</div><h1>Settings & methodology</h1><p>Preferences, analyzer scope and honest scoring semantics.</p></div></div>
+
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid grid-2">
+    <div>
+      <div class="panel mb-4">
+        <div class="panel-head"><div><h2>Editor preferences</h2><p>Applied to the local review workspace.</p></div></div>
+        <div class="field"><label class="form-label" for="font_size">Editor font size</label><input class="form-control" type="number" id="font_size" name="font_size" min="10" max="22" value="{{ settings.font_size }}"></div>
+        <div class="field-row">
+          <div class="field"><label class="form-label" for="tab_size">Tab size</label><input class="form-control" type="number" id="tab_size" name="tab_size" min="2" max="8" value="{{ settings.tab_size }}"></div>
+          <div class="field"><label class="form-label" for="word_wrap">Word wrap</label><select class="form-select" id="word_wrap" name="word_wrap"><option value="true" {{ 'selected' if settings.word_wrap else '' }}>Enabled</option><option value="false" {{ 'selected' if not settings.word_wrap else '' }}>Disabled</option></select></div>
+        </div>
+        <div class="field"><label class="form-label" for="confidence_display">Confidence display</label><select class="form-select" id="confidence_display" name="confidence_display"><option value="percentage" {{ 'selected' if settings.confidence_display == 'percentage' else '' }}>Percentage</option><option value="decimal" {{ 'selected' if settings.confidence_display == 'decimal' else '' }}>Decimal</option></select></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div><h2>Analyzer scope</h2><p>Categories included in new reviews.</p></div></div>
+        {% for key,label in [('security','Security rules'),('quality','Quality rules'),('complexity','Complexity rules'),('bugs','Bug patterns')] %}
+          <div class="setting-row"><div><strong>{{ label }}</strong><small>Include findings from this family in analysis output.</small></div><select class="form-select compact" name="enabled_rules[{{ key }}]"><option value="true" {{ 'selected' if settings.enabled_rules.get(key) else '' }}>Enabled</option><option value="false" {{ 'selected' if not settings.enabled_rules.get(key) else '' }}>Disabled</option></select></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <div class="panel mb-4">
+        <div class="panel-head"><div><h2>Reporting</h2><p>Default export format and report contents.</p></div></div>
+        <div class="field"><label class="form-label" for="default_report_format">Default format</label><select class="form-select" id="default_report_format" name="default_report_format">{% for value in ['pdf','json','csv','markdown'] %}<option value="{{ value }}" {{ 'selected' if settings.default_report_format == value else '' }}>{{ value|upper }}</option>{% endfor %}</select></div>
+        {% for key,label in [('include_snippets','Source snippets'),('include_evidence','Evidence details'),('include_metrics','Structural metrics')] %}
+          <div class="setting-row"><div><strong>{{ label }}</strong><small>Include this section in generated reports.</small></div><select class="form-select compact" name="report_options[{{ key }}]"><option value="true" {{ 'selected' if settings.report_options.get(key) else '' }}>Yes</option><option value="false" {{ 'selected' if not settings.report_options.get(key) else '' }}>No</option></select></div>
+        {% endfor %}
+      </div>
+
+      <div class="panel mb-4">
+        <div class="panel-head"><div><h2>Integrations</h2><p>Optional external capabilities.</p></div></div>
+        <div class="setting-row"><div><strong>AI explanations</strong><small>{{ ai.mode }}</small></div><span class="badge-soft {{ 'badge-good' if ai.enabled else '' }}">{{ 'Available' if ai.enabled else 'Disabled' }}</span></div>
+        <div class="setting-row"><div><strong>GitHub repository review</strong><small>{{ github.reason }}</small></div><span class="badge-soft">Not enabled</span></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div><h2>Confidence methodology</h2><p>Transparent and reproducible.</p></div></div>
+        <div class="method-formula">0.30 × rule reliability + 0.25 × evidence strength<br>+ 0.20 × detection certainty + 0.15 × context completeness<br>+ 0.10 × independent confirmation</div>
+        <p class="text-muted mt-3">Unavailable factors are omitted and remaining weights are renormalized. Sparse evidence applies a conservative completeness penalty. Verified syntax observations have a deterministic floor of 82% for the fact that the syntax is invalid; this does not imply runtime risk certainty.</p>
+        <h2 class="mt-4">Uncertainty</h2>
+        <p class="text-muted">Residual doubt is combined with missing context, context-dependent behavior and detection certainty, then bounded to 0–100%. High confidence and low uncertainty are related but distinct claims.</p>
+      </div>
+    </div>
+  </div>
+  <div class="d-flex justify-content-end gap-2 mt-4"><a class="btn btn-outline-light" href="{{ url_for('settings.settings') }}">Reset</a><button class="btn btn-primary" type="submit"><i class="bi bi-check2-circle me-2"></i>Save preferences</button></div>
+</form>
+{% endblock %}

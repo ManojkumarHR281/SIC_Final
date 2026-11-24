@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Security analysis · Evidence Review{% endblock %}
+{% block crumb %}Security{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">Analysis</div><h1>Security findings</h1><p>Aggregated security evidence with stable rule identifiers and CWE context.</p></div>
+  <div class="heading-actions">
+    <form method="get"><select class="form-select" name="review_id" data-auto-submit><option value="">All reviews</option>{% for r in reviews %}<option value="{{ r.id }}" {{ 'selected' if selected and selected.id == r.id else '' }}>{{ r.title }}</option>{% endfor %}</select></form>
+    <a class="btn btn-outline-light" href="{{ url_for('review.new_review') }}"><i class="bi bi-plus-lg me-2"></i>New review</a>
+  </div>
+</div>
+
+<div class="grid grid-4 mb-4">
+  {% for label,value,accent,icon in [('Security findings', findings|length, '#8B5CF6', 'bi-shield-lock'),('Critical', severities.Critical, '#F43F5E', 'bi-shield-exclamation'),('High', severities.High, '#F59E0B', 'bi-exclamation-triangle'),('Top group', ((groups|dictsort(by='value', reverse=True))[0][0] if groups else 'None'), '#22D3EE', 'bi-diagram-3')] %}
+    <div class="stat-card" style="--accent:{{ accent }}"><div class="stat-top"><div class="stat-icon"><i class="bi {{ icon }}"></i></div></div><div class="stat-label">{{ label }}</div><div class="stat-value {{ 'small-text' if label == 'Top group' else '' }}">{{ value }}</div></div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-2 mb-4">
+  <div class="panel"><div class="panel-head"><div><h2>Severity distribution</h2><p>Security findings only</p></div></div>{% if findings|length %}<div class="chart-wrap sm"><canvas id="severityChart" data-values='{{ severities|tojson }}'></canvas></div>{% else %}<div class="empty-chart"><i class="bi bi-shield-check"></i><strong>No security findings</strong></div>{% endif %}</div>
+  <div class="panel"><div class="panel-head"><div><h2>Top rules</h2><p>Most frequent stable rule identifiers</p></div></div>
+    {% if top_rules %}<div class="mini-list">{% for rule,count in (top_rules|dictsort(by='value', reverse=True))[:8] %}{% set pct = (count / (top_rules.values()|max) * 100)|round|int %}<div class="mini-row" style="--accent:#8B5CF6"><span class="label"><span class="tag">{{ rule }}</span></span><div class="bar" style="width:{{ pct }}%"></div><span class="value">{{ count }}</span></div>{% endfor %}</div>{% else %}<div class="empty-chart"><i class="bi bi-rules"></i><strong>No rule data</strong></div>{% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><div><h2>Security findings</h2><p>{{ findings|length }} result{{ '' if findings|length == 1 else 's' }} in the selected scope</p></div></div>
+  {% if findings %}<div class="table-scroll"><table class="data-table"><thead><tr><th>Finding</th><th>Rule / CWE</th><th>Severity</th><th>Confidence</th><th>Location</th><th>Review</th></tr></thead><tbody>
+    {% for f in findings %}<tr>
+      <td><a class="table-link" href="{{ url_for('review.results', review_id=f.review_id) }}">{{ f.title }}</a><div class="text-muted small">{{ f.description[:110] }}{% if f.description|length > 110 %}…{% endif %}</div></td>
+      <td><span class="tag">{{ f.rule_id or 'n/a' }}</span>{% if f.cwe %} <span class="tag">{{ f.cwe }}</span>{% endif %}</td>
+      <td><span class="badge-soft severity-{{ f.severity }}">{{ f.severity }}</span></td>
+      <td><span class="confidence-{{ f.confidence_level }}">{{ '%.0f'|format(f.confidence * 100) }}%</span> <span class="text-muted small">±U {{ '%.0f'|format(f.uncertainty * 100) }}%</span></td>
+      <td><code>{{ f.file_name }}:{{ f.line_start }}</code></td>
+      <td>#{{ f.review_id }}</td>
+    </tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state"><i class="bi bi-shield-check"></i><h3>No security findings</h3><p>Run a security-focused review to populate this view.</p></div>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}

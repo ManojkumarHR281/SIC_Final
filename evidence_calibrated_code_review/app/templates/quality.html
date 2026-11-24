@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Code quality · Evidence Review{% endblock %}
+{% block crumb %}Code quality{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">Analysis</div><h1>Code quality</h1><p>Structural metrics, complexity trends and maintainability signals.</p></div>
+  <form method="get"><select class="form-select" name="review_id" data-auto-submit><option value="">All reviews</option>{% for r in reviews if not selected %}<option value="{{ r.id }}">{{ r.title }}</option>{% endfor %}{% if selected %}<option value="{{ selected.id }}" selected>{{ selected.title }}</option>{% endif %}</select></form>
+</div>
+
+<div class="grid grid-4 mb-4">
+  {% for label,value,accent,icon in [('Avg quality score', averages.quality, '#8B5CF6', 'bi-stars'),('Max complexity', averages.complexity, '#F43F5E', 'bi-diagram-3'),('Lines of code', averages.loc, '#22D3EE', 'bi-code'),('Maintainability', averages.maintainability, '#10B981', 'bi-speedometer2')] %}
+    <div class="stat-card" style="--accent:{{ accent }}"><div class="stat-top"><div class="stat-icon"><i class="bi {{ icon }}"></i></div></div><div class="stat-label">{{ label }}</div><div class="stat-value">{{ value }}</div></div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-3 mb-4">
+  <div class="panel span-2"><div class="panel-head"><div><h2>Quality score trend</h2><p>Recent reviews, oldest to newest</p></div></div>{% if trend %}<div class="chart-wrap"><canvas id="qualityTrendChart" data-values='{{ trend|tojson }}'></canvas></div>{% else %}<div class="empty-chart"><i class="bi bi-graph-up"></i><strong>No trend data</strong></div>{% endif %}</div>
+  <div class="panel"><div class="panel-head"><div><h2>Structural averages</h2><p>Across selected reviews</p></div></div>
+    {% if averages.functions or averages.classes or averages.loc or averages.maintainability %}
+    <div class="mini-list">
+      <div class="mini-row"><span class="label">Functions</span><div class="bar" style="width:{{ [averages.functions * 8, 100]|min }}%"></div><span class="value">{{ averages.functions }}</span></div>
+      <div class="mini-row"><span class="label">Classes</span><div class="bar" style="width:{{ [averages.classes * 12, 100]|min }}%"></div><span class="value">{{ averages.classes }}</span></div>
+      <div class="mini-row"><span class="label">Maintainability</span><div class="bar" style="width:{{ averages.maintainability }}%;--accent:#10B981"></div><span class="value">{{ averages.maintainability }}</span></div>
+      <div class="mini-row"><span class="label">Lines of code</span><div class="bar" style="width:{{ [averages.loc / 2, 100]|min }}%;--accent:#22D3EE"></div><span class="value">{{ averages.loc }}</span></div>
+    </div>
+    {% else %}<div class="empty-chart"><i class="bi bi-bar-chart"></i><strong>No structural data</strong><span>Run a review to populate these metrics.</span></div>{% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><div><h2>Quality & performance findings</h2><p>{{ findings|length }} result{{ '' if findings|length == 1 else 's' }}</p></div></div>
+  {% if findings %}<div class="table-scroll"><table class="data-table"><thead><tr><th>Finding</th><th>Category</th><th>Severity</th><th>Confidence</th><th>Location</th><th>Review</th></tr></thead><tbody>
+    {% for f in findings %}<tr><td><a class="table-link" href="{{ url_for('review.results', review_id=f.review_id) }}">{{ f.title }}</a><div class="text-muted small">{{ f.description[:110] }}{% if f.description|length > 110 %}…{% endif %}</div></td><td><span class="badge-soft">{{ f.category }}</span></td><td><span class="badge-soft severity-{{ f.severity }}">{{ f.severity }}</span></td><td class="confidence-{{ f.confidence_level }}">{{ '%.0f'|format(f.confidence * 100) }}%</td><td><code>{{ f.file_name }}:{{ f.line_start }}</code></td><td>#{{ f.review_id }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state"><i class="bi bi-stars"></i><h3>No quality findings</h3><p>Quality and performance checks did not report issues in this scope.</p></div>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}

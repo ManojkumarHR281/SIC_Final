@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block title %}{{ review.title }} · Evidence Review{% endblock %}
+{% block crumb %}Review #{{ review.id }}{% endblock %}
+{% block content %}
+{% set total = findings|length or 1 %}
+{% set critical = findings|selectattr('severity','equalto','Critical')|list|length %}
+{% set high = findings|selectattr('severity','equalto','High')|list|length %}
+{% set medium = findings|selectattr('severity','equalto','Medium')|list|length %}
+{% set low = findings|selectattr('severity','equalto','Low')|list|length %}
+{% set info = findings|selectattr('severity','equalto','Informational')|list|length %}
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">Review #{{ review.id }} · {{ review.language|upper }} · {{ review.file_count }} file{{ '' if review.file_count == 1 else 's' }}</div>
+    <h1>{{ review.title }}</h1>
+    <p>Completed {{ review.created_at.strftime('%b %d, %Y at %H:%M') }} · {{ '%.2f'|format(review.duration) }}s · digest <code>{{ review.code_hash[:12] }}</code></p>
+  </div>
+  <div class="heading-actions">
+    <a class="btn btn-outline-light" href="{{ url_for('review.export_csv', review_id=review.id) }}"><i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV</a>
+    <a class="btn btn-outline-light" href="{{ url_for('review.export_json', review_id=review.id) }}"><i class="bi bi-braces me-2"></i>JSON</a>
+    <a class="btn btn-outline-light" href="{{ url_for('review.report', review_id=review.id) }}"><i class="bi bi-file-earmark-text me-2"></i>Markdown</a>
+    <a class="btn btn-primary" href="{{ url_for('review.export_pdf', review_id=review.id) }}"><i class="bi bi-file-earmark-pdf me-2"></i>PDF report</a>
+  </div>
+</div>
+
+{% set ml = review.metrics.get('ml_prediction', {}) %}
+<div class="app-alert alert-info"><i class="bi bi-info-circle"></i><span>{% if ml.get('available') %}C/C++ model output uses calibrated held-out probabilities and entropy uncertainty. CodeXGLUE Devign supplies a binary defect label, not CWE attribution; AST and location are not inferred by this model. {{ ml.get('quality_warning', '') }}{% else %}No trained code model is available for this language or installation. Existing static analyzers remain active; their confidence estimates are heuristic. {{ ml.get('reason', '') }}{% endif %} Submitted source is analyzed locally and never executed.</span><button class="alert-close" type="button" data-dismiss-alert aria-label="Dismiss"><i class="bi bi-x"></i></button></div>
+
+<div class="panel mb-4">
+  <div class="panel-head"><div><h2>ML and NLP model status</h2><p>Measured performance appears only after training completes on public labeled data.</p></div></div>
+  {% set models = review.metrics.get('model_info', {}) %}
+  <div class="grid grid-2">
+    {% for key,label in [('code','Code defect model'),('nlp','NVD description classifier')] %}
+    {% set info = models.get(key, {}) %}{% set perf = info.get('metrics') or {} %}
+    <div class="score-box"><small>{{ label }}</small><strong class="small">{{ 'Trained · ' ~ info.get('model') if info.get('trained') else 'Model not trained' }}</strong>
+      {% if info.get('trained') %}<small>Version {{ info.get('version') }}{% if perf.get('dataset') %} · {{ perf.get('dataset') }}{% endif %}</small>
+      <div class="mt-2">{% for metric in ['accuracy','precision','recall','f1','roc_auc','pr_auc','brier_score','ece','macro_f1'] if perf.get(metric) is not none %}<span class="tag me-1">{{ metric|replace('_',' ') }} {{ '%.3f'|format(perf.get(metric)) }}</span>{% endfor %}</div>
+      {% if perf.get('calibration_comparison') %}<small>Calibration selected: {{ perf.get('calibration') }} · Platt vs isotonic validation comparison saved.</small>{% endif %}
+      {% else %}<small>Evaluation metrics are not available until the real dataset is prepared and the model is trained.</small>{% endif %}
+    </div>{% endfor %}
+  </div>
+  <div class="grid grid-2 mt-3">
+    <div class="score-box"><small>Code samples analyzed</small><strong>{{ review.metrics.get('ml_samples_analyzed', review.file_count) }}</strong><small>{{ review.metrics.get('ml_available_samples', 0) }} had a matching trained code model</small></div>
+    {% set code_metrics = models.get('code', {}).get('metrics') or {} %}
+    {% if code_metrics.get('confusion_matrix') %}<div class="score-box"><small>Code model test confusion matrix</small><strong class="small">{{ code_metrics.get('confusion_matrix')|join(' · ') }}</strong><small>Rows: true 0/1; columns: predicted 0/1</small></div>{% endif %}
+  </div>
+  {% if code_metrics.get('reliability_bins') %}<div class="finding-section mt-3"><h4>Code model calibration reliability (held-out test set)</h4><canvas id="mlReliability" height="90" aria-label="Calibration reliability chart"></canvas></div>{% endif %}
+  <div class="finding-section mt-3"><h4>NLP vulnerability description classification</h4><p>Enter a description to classify it into CWE labels supported by the trained NVD corpus.</p>
+    <textarea id="cweDescription" class="form-control" rows="2" maxlength="3000" placeholder="Describe the vulnerability in natural language"></textarea>
+    <button class="btn btn-sm btn-primary mt-2" id="classifyDescription" type="button">Classify description</button>
+    <div id="cweResult" class="rationale-box mt-2" hidden></div>
+  </div>
+  <small class="text-muted">Devign training is scoped to C/C++ and predicts a binary defect/vulnerability label. NVD CWE probabilities are classifier scores and are not calibrated. Scikit-learn baseline; no CodeBERT fine-tuning claimed.</small>
+  <small class="text-muted d-block mt-1">This baseline does not produce epoch training/validation loss curves; those metrics are unavailable rather than invented.</small>
+</div>
+
+<div class="panel mb-4">
+  <div class="panel-head"><div><h2>Review intelligence</h2><p>Quality, risk and finding distribution at a glance</p></div><span class="badge-soft risk-{{ review.risk_level }}"><i class="bi bi-shield-exclamation me-1"></i>{{ review.risk_level }} risk</span></div>
+  <div class="overview-grid">
+    <div class="text-center">
+      <div class="score-ring" id="qualityRing" style="--value:0" data-value="{{ review.quality_score }}" title="Quality score"><div><strong id="qualityValue">0</strong><small>QUALITY / 100</small></div></div>
+      <div class="mt-3"><span class="badge-soft {{ 'badge-good' if review.quality_score >= 70 else 'badge-bad' }}">{{ 'Healthy' if review.quality_score >= 70 else 'Needs attention' }}</span></div>
+    </div>
+    <div>
+      <div class="eyebrow mb-2">Severity breakdown</div>
+      <div class="severity-bars">
+        {% for label,count,color in [('Critical',critical,'#F43F5E'),('High',high,'#FB7185'),('Medium',medium,'#F59E0B'),('Low',low,'#10B981'),('Info',info,'#22D3EE')] %}
+          <div class="severity-bar-row"><span>{{ label }}</span><div class="severity-bar" style="--accent:{{ color }}"><i style="width:0" data-width="{{ (count / total * 100)|round|int }}"></i></div><strong>{{ count }}</strong></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="grid grid-2" style="gap:10px">
+      <div class="score-box"><small>Findings</small><strong>{{ review.total_findings }}</strong><small>{{ '%.0f'|format(review.avg_confidence * 100) }}% avg confidence</small></div>
+      <div class="score-box"><small>Uncertainty</small><strong>{{ '%.0f'|format(review.avg_uncertainty * 100) }}%</strong><small>evidence-based estimate</small></div>
+      <div class="score-box"><small>Confidence mix</small><strong class="small">H {{ review.high_confidence_count }} · M {{ review.medium_confidence_count }} · L {{ review.low_confidence_count }}</strong><small>classified observations</small></div>
+      <div class="score-box"><small>Analysis coverage</small><strong class="small">{{ 'Full AST' if review.metrics.get('full_analysis') else 'Pattern analysis' }}</strong><small>{{ review.metrics.get('lines_of_code', 0) }} LOC · {{ review.metrics.get('function_count', 0) }} functions</small></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel mb-4">
+  <div class="panel-head"><div><h2>Analysed files and metrics</h2><p>Language adapters and structural measurements</p></div><span class="badge-soft"><i class="bi bi-folder2-open me-1"></i>{{ review.file_names|length }} file(s)</span></div>
+  <div class="grid grid-4">
+    <div><small class="text-muted">Files</small><div class="mt-1">{% for name in review.file_names %}<span class="tag me-1">{{ name }}</span>{% else %}<span class="tag">submitted_code.py</span>{% endfor %}</div></div>
+    <div><small class="text-muted">Max complexity</small><div class="stat-value">{{ review.metrics.get('max_complexity', 0) }}</div></div>
+    <div><small class="text-muted">Maintainability</small><div class="stat-value">{{ '%.0f'|format(review.metrics.get('maintainability_index', 0)) }}</div></div>
+    <div><small class="text-muted">Documentation ratio</small><div class="stat-value">{{ '%.0f'|format(review.metrics.get('documentation_ratio', 0) * 100) }}%</div></div>
+  </div>
+</div>
+
+<div class="finding-toolbar">
+  <div><h2>Findings <span class="count-pill" id="visibleCount">{{ findings|length }}</span></h2><p>Ranked by severity, evidence confidence and evidence strength.</p></div>
+  <div class="toolbar-filters">
+    <button class="btn btn-sm btn-outline-light" id="expandAll" type="button"><i class="bi bi-arrows-expand me-1"></i>Expand all</button>
+    <button class="btn btn-sm btn-outline-light" id="collapseAll" type="button"><i class="bi bi-arrows-collapse me-1"></i>Collapse all</button>
+    <input id="findingSearch" class="form-control" placeholder="Search findings…">
+    <select id="severityFilter" class="form-select"><option value="">All severities</option>{% for value in ['Critical','High','Medium','Low','Informational'] %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+    <select id="confidenceFilter" class="form-select"><option value="">All confidence</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option></select>
+    <select id="categoryFilter" class="form-select"><option value="">All categories</option>{% for value in ['Security','Bug','Syntax','Performance','Quality'] %}<option value="{{ value }}">{{ value }}</option>{% endfor %}</select>
+  </div>
+</div>
+
+<div class="pill-tabs mb-4" id="quickFilters">
+  <button type="button" class="active" data-quick-clear>All {{ findings|length }}</button>
+  <button type="button" data-quick-severity="Critical">Critical {{ critical }}</button>
+  <button type="button" data-quick-severity="High">High {{ high }}</button>
+  <button type="button" data-quick-severity="Medium">Medium {{ medium }}</button>
+  <button type="button" data-quick-severity="Low">Low {{ low }}</button>
+  <button type="button" data-quick-confidence="HIGH">High confidence</button>
+</div>
+
+{% for f in findings %}
+  <article class="finding-card" style="--accent:{{ '#F43F5E' if f.severity == 'Critical' else '#FB7185' if f.severity == 'High' else '#F59E0B' if f.severity == 'Medium' else '#10B981' if f.severity == 'Low' else '#64748B' }}"
+    data-severity="{{ f.severity }}" data-confidence="{{ f.confidence_level }}" data-category="{{ f.category }}"
+    data-search="{{ (f.title ~ ' ' ~ f.description ~ ' ' ~ f.rule_id ~ ' ' ~ f.file_name)|lower }}"
+    data-title="{{ f.title|e }}" data-description="{{ f.description|e }}" data-recommendation="{{ f.recommendation|e }}"
+    data-code="{{ review.source_files.get(f.file_name, f.snippet)|e }}" data-fix="{{ f.fix_code|e }}" data-snippet="{{ f.snippet|e }}">
+    <div class="finding-head">
+      <div class="finding-index">{{ loop.index }}</div>
+      <div class="finding-main">
+        <h3 class="finding-title">{{ f.title }}</h3>
+        <div class="finding-meta">
+          <span class="badge-soft severity-{{ f.severity }}">{{ f.severity }}</span>
+          <span class="badge-soft">{{ f.category }}{% if f.category_group %} · {{ f.category_group }}{% endif %}</span>
+          <span class="badge-soft confidence-{{ f.confidence_level }}">{{ 'Calibrated probability' if f.model_probability is not none else 'Confidence' }} {{ '%.0f'|format(f.confidence * 100) }}%</span>
+          <span class="badge-soft">Uncertainty {{ '%.0f'|format(f.uncertainty * 100) }}%</span>
+          {% if f.line_start %}<code>{{ f.file_name }}:{{ f.line_start }}</code>{% else %}<code>{{ f.file_name }} · no line attribution</code>{% endif %}
+          {% if f.rule_id %}<span class="tag">{{ f.rule_id }}</span>{% endif %}
+          {% if f.cwe %}<span class="tag">{{ f.cwe }}</span>{% endif %}
+          {% if f.model_probability is not none %}<span class="tag">Raw model probability {{ '%.0f'|format(f.model_probability * 100) }}%</span><span class="tag">Calibrated {{ '%.0f'|format(f.calibrated_probability * 100) }}% · v{{ f.model_version }}</span>{% endif %}
+        </div>
+      </div>
+      <i class="bi bi-chevron-down finding-chevron"></i>
+    </div>
+    <div class="finding-body">
+      <div class="finding-inner">
+        <div class="finding-section"><h4>What was detected</h4><p>{{ f.description }}</p></div>
+        {% if f.explanation %}<div class="finding-section"><h4>Explanation</h4><p>{{ f.explanation }}</p></div>{% endif %}
+        {% if f.snippet %}<div class="finding-section"><h4>Evidence location</h4><pre class="code-snippet">{{ f.snippet }}</pre></div>{% endif %}
+        <div class="finding-section">
+          <h4>Evidence and scoring rationale</h4>
+          <div class="score-grid">
+            <div class="score-box"><small>{{ 'Calibrated probability' if f.model_probability is not none else 'Confidence' }}</small><strong class="confidence-{{ f.confidence_level }}">{{ '%.0f'|format(f.confidence * 100) }}%</strong><div class="score-track"><div class="score-fill" style="width:{{ f.confidence * 100 }}%"></div></div></div>
+            <div class="score-box"><small>Uncertainty</small><strong>{{ '%.0f'|format(f.uncertainty * 100) }}%</strong><div class="score-track"><div class="score-fill" style="width:{{ f.uncertainty * 100 }}%;background:linear-gradient(90deg,#F59E0B,#F43F5E)"></div></div></div>
+            <div class="score-box"><small>Evidence strength</small><strong>{{ '%.0f'|format(f.evidence[0].strength * 100) if f.evidence else 0 }}%</strong><div class="score-track"><div class="score-fill" style="width:{{ (f.evidence[0].strength * 100) if f.evidence else 0 }}%"></div></div></div>
+            <div class="score-box"><small>Source</small><strong class="small">{{ f.source }}</strong><small>{{ f.confidence_level }} classification</small></div>
+          </div>
+          {% if f.rationale %}<div class="rationale-box mt-3">{{ f.rationale }}</div>{% endif %}
+          {% if f.warning %}<div class="warning-box mt-3"><i class="bi bi-exclamation-triangle me-2"></i>{{ f.warning }}</div>{% endif %}
+        </div>
+        {% if f.evidence %}
+        <div class="finding-section"><h4>Supporting evidence</h4>
+          {% for evidence in f.evidence %}<div class="evidence-item"><i class="bi bi-{{ 'check-circle-fill' if evidence.verified else 'circle' }}"></i><div><strong>{{ evidence.source }}</strong> · {{ evidence.evidence_type }} · strength {{ '%.0f'|format(evidence.strength * 100) }}%<div class="text-muted mt-1">{{ evidence.description }}</div></div></div>{% endfor %}
+        </div>{% endif %}
+        <div class="finding-section"><h4>Recommendation</h4><p>{{ f.recommendation }}</p></div>
+        {% if f.potential_impact %}<div class="finding-section"><h4>Potential impact</h4><p>{{ f.potential_impact }}</p></div>{% endif %}
+        {% if f.fix_code %}<div class="finding-section"><h4>Before and after</h4><div class="diff-grid"><div><div class="diff-label">Current</div><pre class="code-snippet diff-before">{{ f.snippet or 'No snippet captured' }}</pre></div><div><div class="diff-label">Suggested</div><pre class="code-snippet diff-after">{{ f.fix_code }}</pre></div></div></div>{% endif %}
+        <div class="finding-actions">
+          {% if f.fix_code %}<button class="btn btn-sm btn-light" type="button" data-fix><i class="bi bi-wrench-adjustable me-2"></i>Suggested fix</button>{% endif %}
+          <button class="btn btn-sm btn-outline-light" type="button" data-ai-action="explain_vulnerability"><i class="bi bi-stars me-2"></i>AI explanation</button>
+          <button class="btn btn-sm btn-outline-light" type="button" data-ai-action="suggest_correction"><i class="bi bi-magic me-2"></i>AI fix guidance</button>
+        </div>
+      </div>
+    </div>
+  </article>
+{% else %}
+  <div class="empty-state"><i class="bi bi-check2-circle"></i><h3>No findings</h3><p>The configured analyzers did not report issues in this submission.</p></div>
+{% endfor %}
+<div class="empty-state" id="noMatches" hidden><i class="bi bi-funnel"></i><h3>No matching findings</h3><p>Adjust the filters to see more results.</p></div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/results.js') }}"></script><script>
+document.getElementById('classifyDescription')?.addEventListener('click', async () => {
+ const box=document.getElementById('cweResult'), text=document.getElementById('cweDescription').value.trim(); box.hidden=false; box.textContent='Classifying locally…';
+ try { const r=await fetch('{{ url_for("api_utils.api_nlp_classify") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:text})}); const d=await r.json();
+ box.textContent=d.available ? `Predicted ${d.cwe} (${(d.probability*100).toFixed(1)}% raw classifier score). Top labels: ${d.top_predictions.map(x=>x.cwe+' '+(x.probability*100).toFixed(1)+'%').join(', ')}. These scores are not calibrated.` : (d.reason||d.error||'Classification unavailable.');
+ } catch(e) { box.textContent='Local classification request failed.'; }
+});
+{% set bins = (review.metrics.get('model_info', {}).get('code', {}).get('metrics') or {}).get('reliability_bins', []) %}
+{% if bins %}if(window.Chart){new Chart(document.getElementById('mlReliability'),{type:'line',data:{datasets:[
+ {label:'Observed positive rate',data:{{ bins|tojson }}.map(b=>({x:b.mean_confidence,y:b.fraction_positive})),parsing:{xAxisKey:'x',yAxisKey:'y'},pointRadius:4},
+ {label:'Ideal calibration',data:[{x:0,y:0},{x:1,y:1}],showLine:true,pointRadius:0}
+]},options:{responsive:true,scales:{x:{type:'linear',min:0,max:1,title:{display:true,text:'Mean predicted confidence'}},y:{min:0,max:1,title:{display:true,text:'Observed positive fraction'}}}}});}{% endif %}
+</script>{% endblock %}

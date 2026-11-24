@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}New review · Evidence Review{% endblock %}
+{% block crumb %}New review{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">Analysis workspace</div><h1>New code review</h1><p>IDE-inspired local analysis. Source is parsed statically and never executed.</p></div>
+  <div class="heading-actions"><span class="badge-soft"><i class="bi bi-shield-check me-1"></i>Private local engine</span><span class="badge-soft"><i class="bi bi-file-earmark-code me-1"></i>Up to 8 files</span></div>
+</div>
+
+<form id="reviewForm" action="{{ url_for('review.submit_review') }}" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="ide-workspace">
+    <section class="ide-panel" id="explorerPanel">
+  <div class="ide-panel-head"><span>Explorer</span><button class="btn btn-ghost btn-sm" type="button" data-collapse-panel="explorerPanel" aria-label="Collapse explorer"><i class="bi bi-chevron-left"></i></button></div>
+      <div class="ide-panel-body" data-panel-body>
+        <div class="eyebrow">Uploaded files</div>
+        <div class="file-list" id="fileList"><div class="empty-chart" id="noFiles"><i class="bi bi-folder2-open"></i><strong>No files yet</strong><span>Paste code or upload sources.</span></div></div>
+        <div id="uploadZone" class="upload-zone mt-3"><i class="bi bi-cloud-arrow-up"></i><strong>Drop source files</strong><small>.py .js .ts .java .cpp .c .cs .php .go .rb</small><input id="fileInput" name="files" type="file" multiple accept=".py,.js,.ts,.java,.cpp,.c,.cs,.php,.go,.rb"></div>
+        <div class="eyebrow mt-4">Language</div>
+        <span class="badge-soft" id="fileLanguage"><i class="bi bi-code-slash me-1"></i>Python</span>
+        <div class="eyebrow mt-4">Samples</div>
+        <div class="sample-row">{% for name,code in samples.items() %}<button class="sample-btn" type="button" data-sample="{{ code|e }}">{{ name }}</button>{% endfor %}</div>
+      </div>
+    </section>
+
+    <section class="ide-panel" id="editorPanel">
+      <div class="ide-panel-head">
+        <span class="editor-name" id="fileName">pasted_code.py</span>
+        <div class="editor-tools">
+          <button type="button" id="explainCode" title="AI explanation"><i class="bi bi-stars"></i></button>
+          <button type="button" id="copyCode" title="Copy"><i class="bi bi-clipboard"></i></button>
+          <button type="button" id="downloadCode" title="Download"><i class="bi bi-download"></i></button>
+          <button type="button" id="clearCode" title="Clear"><i class="bi bi-eraser"></i></button>
+          <button type="button" data-collapse-panel="editorPanel" title="Collapse editor"><i class="bi bi-chevron-down"></i></button>
+        </div>
+      </div>
+      <div class="ide-panel-body" data-panel-body style="padding:0;display:flex;flex-direction:column">
+        <div class="ide-editor-wrap"><div id="monacoEditor"></div><textarea id="codeInput" class="form-control code-editor" name="code" spellcheck="false" placeholder="# Paste or upload source code…" autofocus></textarea></div>
+        <div class="editor-foot"><span id="lineCount">0 lines · 0 bytes</span><span id="editorMode">Fallback editor · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to analyze</span></div>
+      </div>
+    </section>
+
+    <section class="ide-panel" id="summaryPanel">
+      <div class="ide-panel-head"><span>Analysis setup</span><button class="btn btn-ghost btn-sm" type="button" data-collapse-panel="summaryPanel" aria-label="Collapse summary"><i class="bi bi-chevron-right"></i></button></div>
+      <div class="ide-panel-body" data-panel-body>
+        <div class="field"><label class="form-label" for="title">Review title</label><input class="form-control" id="title" name="title" maxlength="160" placeholder="e.g. Authentication module"></div>
+        <div class="field"><label class="form-label" for="language">Language</label><select class="form-select" id="language" name="language"><option value="python">Python</option><option value="javascript">JavaScript</option><option value="typescript">TypeScript</option><option value="java">Java</option><option value="cpp">C++</option><option value="c">C</option><option value="csharp">C#</option><option value="php">PHP</option><option value="go">Go</option><option value="ruby">Ruby</option></select></div>
+        <div class="field"><label class="form-label" for="mode">Analysis mode</label><select class="form-select" id="mode" name="mode"><option value="comprehensive">Comprehensive</option><option value="bugs">Bugs</option><option value="security">Security</option><option value="performance">Performance</option><option value="quality">Quality</option></select></div>
+        <div class="field"><label class="form-label" for="sensitivity">Sensitivity</label><select class="form-select" id="sensitivity" name="sensitivity"><option value="balanced">Balanced</option><option value="conservative">Conservative</option></select></div>
+        <div class="eyebrow">Live signals</div>
+        <div id="liveSignals" class="mini-list"><div class="mini-row"><span class="label">Start typing to see local heuristic signals.</span></div></div>
+        <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="storeSource" name="store_source" value="true"><label class="form-check-label small" for="storeSource">Keep complete source with this review (optional)</label></div>
+        <small class="text-muted d-block mt-1">By default only the source digest and short finding snippets are retained. Enable this only if you need complete source in saved reports.</small>
+        <button class="btn btn-primary w-100 mt-4" type="submit"><i class="bi bi-lightning-charge me-2"></i>Run analysis</button>
+      </div>
+    </section>
+
+    <div class="resize-handle" id="ideResize" title="Drag to resize"></div>
+    <section class="ide-panel ide-bottom" id="bottomPanel">
+      <div class="ide-panel-head"><div class="ide-tabs"><span class="ide-tab active" data-ide-tab="problems">Problems</span><span class="ide-tab" data-ide-tab="evidence">Evidence</span><span class="ide-tab" data-ide-tab="logs">Logs</span><span class="ide-tab" data-ide-tab="summary">Summary</span></div><button class="btn btn-ghost btn-sm" type="button" data-collapse-panel="bottomPanel"><i class="bi bi-chevron-down"></i></button></div>
+      <div class="ide-panel-body" data-panel-body>
+        <div data-ide-content="problems"><div class="mini-list" id="problemList"><div class="mini-row"><span class="label">No live signals yet.</span></div></div></div>
+        <div data-ide-content="evidence" hidden><p class="small text-muted">Signals are deterministic local pattern observations. Final evidence, confidence and rationale are produced by the full analyzer after submission.</p><div class="mini-list" id="evidencePreview"></div></div>
+        <div data-ide-content="logs" hidden><div id="analysisLogs"><div class="log-line"><span>ready</span> · local analyzer standing by</div></div></div>
+        <div data-ide-content="summary" hidden><div id="editorSummary" class="small text-muted">No source loaded.</div></div>
+      </div>
+    </section>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+<script src="{{ url_for('static', filename='js/review.js') }}"></script>
+{% endblock %}

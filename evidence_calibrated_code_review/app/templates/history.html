@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Review history · Evidence Review{% endblock %}
+{% block crumb %}Review history{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">Workspace</div><h1>Review history</h1><p>Search, filter, compare and export saved analyses.</p></div>
+  <div class="heading-actions"><a class="btn btn-outline-light" href="{{ url_for('reports.compare_page') }}"><i class="bi bi-columns-gap me-2"></i>Compare reviews</a><a class="btn btn-primary" href="{{ url_for('review.new_review') }}"><i class="bi bi-plus-lg me-2"></i>New review</a></div>
+</div>
+
+<form class="panel mb-4" method="get">
+  <div class="grid grid-4">
+    <div class="field mb-0"><label class="form-label" for="q">Search</label><input class="form-control" id="q" name="q" value="{{ args.get('q','') }}" placeholder="Title or language…"></div>
+    <div class="field mb-0"><label class="form-label" for="language">Language</label><select class="form-select" id="language" name="language"><option value="">All languages</option>{% for lang in languages %}<option value="{{ lang }}" {{ 'selected' if args.get('language') == lang else '' }}>{{ lang|title }}</option>{% endfor %}</select></div>
+    <div class="field mb-0"><label class="form-label" for="severity">Risk level</label><select class="form-select" id="severity" name="severity"><option value="">All risks</option>{% for value in ['Critical','High','Medium','Low'] %}<option value="{{ value }}" {{ 'selected' if args.get('severity') == value else '' }}>{{ value }}</option>{% endfor %}</select></div>
+    <div class="field mb-0"><label class="form-label" for="sort">Sort by</label><select class="form-select" id="sort" name="sort"><option value="newest" {{ 'selected' if args.get('sort','newest') == 'newest' else '' }}>Newest first</option><option value="oldest" {{ 'selected' if args.get('sort') == 'oldest' else '' }}>Oldest first</option><option value="findings" {{ 'selected' if args.get('sort') == 'findings' else '' }}>Most findings</option></select></div>
+  </div>
+  <div class="d-flex gap-2 mt-3"><button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-2"></i>Apply filters</button><a class="btn btn-outline-light" href="{{ url_for('history.history') }}">Reset</a></div>
+</form>
+
+<div class="panel">
+  <div class="panel-head"><div><h2>Saved reviews</h2><p>{{ pagination.total }} matching review{{ '' if pagination.total == 1 else 's' }} · page {{ pagination.page }} of {{ pagination.pages }}</p></div></div>
+  {% if reviews %}
+    <div class="table-scroll"><table class="data-table" id="historyTable"><thead><tr><th>Review</th><th>Files</th><th>Findings</th><th>Quality</th><th>Risk</th><th>Confidence</th><th>Created</th><th class="text-end">Actions</th></tr></thead><tbody>
+      {% for r in reviews %}
+        <tr data-search="{{ (r.title ~ ' ' ~ r.language ~ ' ' ~ r.review_mode)|lower }}">
+          <td><a class="table-link" href="{{ url_for('review.results', review_id=r.id) }}">{{ r.title }}</a><div class="text-muted small">{{ r.language|title }} · {{ r.review_mode|title }}</div></td>
+          <td>{{ r.file_count }}</td><td>{{ r.total_findings }}</td><td>{{ '%.0f'|format(r.quality_score) }}</td>
+          <td><span class="badge-soft risk-{{ r.risk_level }}">{{ r.risk_level }}</span></td>
+          <td><span class="confidence-HIGH">{{ r.high_confidence_count }}</span> / <span class="confidence-MEDIUM">{{ r.medium_confidence_count }}</span> / <span class="confidence-LOW">{{ r.low_confidence_count }}</span></td>
+          <td>{{ r.created_at.strftime('%b %d, %Y') }}</td>
+          <td class="text-end"><div class="d-flex justify-content-end gap-1">
+            <a class="btn btn-sm btn-light" href="{{ url_for('review.results', review_id=r.id) }}">View</a>
+            <a class="btn btn-sm btn-outline-light" href="{{ url_for('reports.compare_page', left=r.id) }}">Compare</a>
+            <form method="post" action="{{ url_for('history.delete_review', review_id=r.id) }}" data-confirm="Delete this saved review?"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-danger" type="submit" aria-label="Delete review"><i class="bi bi-trash"></i></button></form>
+          </div></td>
+        </tr>
+      {% endfor %}
+    </tbody></table></div>
+    {% if pagination.pages > 1 %}<nav class="mt-4"><ul class="pagination justify-content-center">
+      {% if pagination.has_prev %}<li class="page-item"><a class="page-link" href="{{ url_for('history.history', page=pagination.prev_num, **base_params) }}">Previous</a></li>{% endif %}
+      {% for number in pagination.iter_pages() %}{% if number %}<li class="page-item {{ 'active' if number == pagination.page else '' }}"><a class="page-link" href="{{ url_for('history.history', page=number, **base_params) }}">{{ number }}</a></li>{% else %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}{% endfor %}
+      {% if pagination.has_next %}<li class="page-item"><a class="page-link" href="{{ url_for('history.history', page=pagination.next_num, **base_params) }}">Next</a></li>{% endif %}
+    </ul></nav>{% endif %}
+  {% else %}
+    <div class="empty-state"><i class="bi bi-clock-history"></i><h3>No reviews found</h3><p>Adjust the filters or submit a new review to get started.</p><a class="btn btn-primary" href="{{ url_for('review.new_review') }}">Start a review</a></div>
+  {% endif %}
+</div>
+{% endblock %}

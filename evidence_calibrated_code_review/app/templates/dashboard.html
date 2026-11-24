@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · Evidence Review{% endblock %}
+{% block crumb %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">Workspace overview</div>
+    <h1 id="welcomeHeading">Good to see you</h1>
+    <p id="todayDate">Loading today's context…</p>
+  </div>
+  <div class="heading-actions">
+    <form method="get" class="d-flex gap-2 align-items-center">
+      <select class="form-select" name="range" data-auto-submit>
+        {% for value,label in [('7','Last 7 days'),('30','Last 30 days'),('90','Last 90 days'),('all','All time')] %}
+          <option value="{{ value }}" {{ 'selected' if active_range == value else '' }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    <a class="btn btn-primary" href="{{ url_for('review.new_review') }}"><i class="bi bi-plus-lg me-2"></i>New review</a>
+  </div>
+</div>
+
+<div class="grid grid-6 mb-4" data-timeline='{{ stats.timeline|tojson }}'>
+  {% set cards = [
+    ('Total reviews', stats.total_reviews, 'bi-files', '#8B5CF6', stats.trends.total_reviews, 'reviews'),
+    ('Total findings', stats.total_issues, 'bi-bug', '#22D3EE', stats.trends.total_issues, 'findings'),
+    ('Critical', stats.critical, 'bi-shield-exclamation', '#F43F5E', stats.trends.critical, 'findings'),
+    ('High severity', stats.high_severity, 'bi-exclamation-triangle', '#F59E0B', stats.trends.high_severity, 'findings'),
+    ('Avg confidence', (stats.avg_confidence * 100)|round|int, 'bi-patch-check', '#10B981', none, 'quality'),
+    ('Quality score', stats.quality_score, 'bi-stars', '#6366F1', none, 'quality')
+  ] %}
+  {% for label,value,icon,accent,trend,spark in cards %}
+    <div class="stat-card" style="--accent:{{ accent }}">
+      <div class="stat-top"><div class="stat-icon"><i class="bi {{ icon }}"></i></div>{% if trend %}<span class="badge-soft {{ 'up' if trend.direction == 'up' else 'down' if trend.direction == 'down' else '' }}">{{ '+' if trend.delta and trend.delta > 0 else '' }}{{ trend.delta if trend.delta is not none else 'new' }}{{ '%' if trend.delta is not none else '' }}</span>{% endif %}</div>
+      <div class="stat-label">{{ label }}</div>
+      <div class="stat-value" data-count="{{ value }}">{{ value }}</div>
+      <svg class="sparkline" data-spark="{{ spark }}" viewBox="0 0 100 28" preserveAspectRatio="none"></svg>
+      <div class="stat-delta">{{ 'vs previous period' if trend else ('across ' ~ stats.files_analyzed ~ ' files') if label == 'Total reviews' else 'heuristic estimate' }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="grid grid-3 mb-4">
+  <div class="panel span-2">
+    <div class="panel-head"><div><h2>Review activity</h2><p>Daily submissions in the selected period</p></div><span class="badge-soft"><i class="bi bi-activity me-1"></i>Live data</span></div>
+    {% if stats.timeline %}<div class="chart-wrap"><canvas id="timelineChart" data-values='{{ stats.timeline|tojson }}'></canvas></div>
+    {% else %}<div class="empty-chart"><i class="bi bi-activity"></i><strong>No activity yet</strong><span>Run a review to see trends here.</span></div>{% endif %}
+  </div>
+  <div class="panel">
+    <div class="panel-head"><div><h2>Severity distribution</h2><p>Findings by impact level</p></div></div>
+    {% if stats.total_issues %}<div class="chart-wrap"><canvas id="severityChart" data-values='{{ stats.severity|tojson }}'></canvas></div>
+    {% else %}<div class="empty-chart"><i class="bi bi-bar-chart"></i><strong>No findings yet</strong><span>Submit code to begin.</span></div>{% endif %}
+  </div>
+</div>
+
+<div class="grid grid-3 mb-4">
+  <div class="panel">
+    <div class="panel-head"><div><h2>Vulnerability trend</h2><p>Daily finding volume</p></div></div>
+    {% if stats.timeline %}<div class="chart-wrap sm"><canvas id="findingsTimelineChart" data-values='{{ stats.timeline|tojson }}'></canvas></div>
+    {% else %}<div class="empty-chart"><i class="bi bi-shield"></i><strong>No findings</strong></div>{% endif %}
+  </div>
+  <div class="panel">
+    <div class="panel-head"><div><h2>Confidence distribution</h2><p>Evidence strength, not probability</p></div></div>
+    {% if stats.total_issues %}<div class="chart-wrap sm"><canvas id="confidenceChart" data-values='{{ stats.confidence|tojson }}'></canvas></div>
+    {% else %}<div class="empty-chart"><i class="bi bi-pie-chart"></i><strong>Awaiting findings</strong></div>{% endif %}
+  </div>
+  <div class="panel">
+    <div class="panel-head"><div><h2>Quality trend</h2><p>Average score over time</p></div></div>
+    {% if stats.timeline %}<div class="chart-wrap sm"><canvas id="qualityTrendChart" data-values='{{ stats.timeline|tojson }}'></canvas></div>
+    {% else %}<div class="empty-chart"><i class="bi bi-stars"></i><strong>Awaiting reviews</strong></div>{% endif %}
+  </div>
+</div>
+
+<div class="grid grid-3 mb-4">
+  <div class="panel">
+    <div class="panel-head"><div><h2>Category mix</h2><p>Finding families</p></div></div>
+    {% if stats.total_issues %}<div class="chart-wrap sm"><canvas id="categoriesChart" data-values='{{ stats.categories|tojson }}'></canvas></div>{% else %}<div class="empty-chart"><i class="bi bi-pie-chart"></i><strong>No data</strong></div>{% endif %}
+  </div>
+  <div class="panel span-2">
+    <div class="panel-head"><div><h2>Security groups</h2><p>Where security findings concentrate</p></div><a class="btn btn-sm btn-outline-light" href="{{ url_for('analysis.security_dashboard') }}">Security workspace</a></div>
+    {% if stats.security_groups %}<div class="chart-wrap sm"><canvas id="securityGroupsChart" data-values='{{ stats.security_groups|tojson }}'></canvas></div>
+    {% else %}<div class="empty-chart"><i class="bi bi-shield-check"></i><strong>No security findings</strong><span>Good sign, or no code reviewed yet.</span></div>{% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><div><h2>Recent activity</h2><p>Latest reviews with quick access</p></div><a class="btn btn-sm btn-outline-light" href="{{ url_for('history.history') }}">View all</a></div>
+  {% if recent %}
+    <div class="mini-list">
+      {% for r in recent %}
+        <div class="mini-row">
+          <span class="stat-icon" style="--accent:#8B5CF6"><i class="bi bi-file-earmark-code"></i></span>
+          <span class="label"><strong>{{ r.title }}</strong><br><small>{{ r.file_names[0] if r.file_names else 'submitted_code.py' }} · {{ r.created_at.strftime('%b %d, %H:%M') }} · {{ r.status|title }}</small></span>
+          <span class="badge-soft">{{ r.total_findings }} findings</span>
+          <span class="badge-soft risk-{{ r.risk_level }}">{{ r.risk_level }}</span>
+          <a class="btn btn-sm btn-light" href="{{ url_for('review.results', review_id=r.id) }}">Open</a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><i class="bi bi-inbox"></i><h3>No reviews yet</h3><p>Your first analysis will appear here with trends and evidence summaries.</p><a class="btn btn-primary" href="{{ url_for('review.new_review') }}">Start a review</a></div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}

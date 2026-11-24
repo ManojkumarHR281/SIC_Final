@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Analytics · Evidence Review{% endblock %}
+{% block crumb %}Analytics{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">Insights</div><h1>Analytics workspace</h1><p>Deep-dive into evidence quality, categories and analyzer behavior.</p></div>
+  <form method="get"><select class="form-select" name="range" data-auto-submit>{% for value,label in [('7','Last 7 days'),('30','Last 30 days'),('90','Last 90 days'),('all','All time')] %}<option value="{{ value }}" {{ 'selected' if active_range == value else '' }}>{{ label }}</option>{% endfor %}</select></form>
+</div>
+
+<div class="grid grid-4 mb-4">
+  <div class="stat-card" style="--accent:#6366F1"><div class="stat-label">Reviews</div><div class="stat-value">{{ stats.total_reviews }}</div></div>
+  <div class="stat-card" style="--accent:#22D3EE"><div class="stat-label">Findings</div><div class="stat-value">{{ stats.total_issues }}</div></div>
+  <div class="stat-card" style="--accent:#10B981"><div class="stat-label">Avg confidence</div><div class="stat-value">{{ '%.0f'|format(stats.avg_confidence * 100) }}%</div></div>
+  <div class="stat-card" style="--accent:#F59E0B"><div class="stat-label">Avg uncertainty</div><div class="stat-value">{{ '%.0f'|format(stats.avg_uncertainty * 100) }}%</div></div>
+</div>
+
+<div class="grid grid-2 mb-4">
+  <div class="panel"><div class="panel-head"><div><h2>Findings over time</h2><p>Daily finding volume</p></div></div>{% if stats.timeline %}<div class="chart-wrap"><canvas id="findingsTimelineChart" data-values='{{ stats.timeline|tojson }}'></canvas></div>{% else %}<div class="empty-chart"><i class="bi bi-activity"></i><strong>No data</strong></div>{% endif %}</div>
+  <div class="panel"><div class="panel-head"><div><h2>Category mix</h2><p>Security, bug, syntax, performance, quality</p></div></div>{% if stats.total_issues %}<div class="chart-wrap"><canvas id="categoriesChart" data-values='{{ stats.categories|tojson }}'></canvas></div>{% else %}<div class="empty-chart"><i class="bi bi-pie-chart"></i><strong>No data</strong></div>{% endif %}</div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><div><h2>Most frequent rules</h2><p>Stable rule identifiers across the selected period</p></div></div>
+  {% if top_rules %}<div class="mini-list">{% for rule,count in top_rules %}{% set pct = (count / top_rules[0][1] * 100)|round|int %}<div class="mini-row"><span class="label"><span class="tag">{{ rule }}</span></span><div class="bar" style="width:{{ pct }}%"></div><span class="value">{{ count }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state"><i class="bi bi-rules"></i><h3>No rules recorded</h3><p>Run a review to populate rule analytics.</p></div>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Compare reviews · Evidence Review{% endblock %}
+{% block crumb %}Compare{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">Analysis</div><h1>Compare reviews</h1><p>Track resolved, new and remaining findings using stable rule identifiers and source context.</p></div></div>
+
+<div class="panel mb-4"><form method="get" class="grid grid-3 align-items-end">
+  <div class="field mb-0"><label class="form-label" for="left">Baseline review</label><select class="form-select" id="left" name="left"><option value="">Choose…</option>{% for r in reviews %}<option value="{{ r.id }}" {{ 'selected' if left == r.id else '' }}>#{{ r.id }} · {{ r.title }}</option>{% endfor %}</select></div>
+  <div class="field mb-0"><label class="form-label" for="right">Current review</label><select class="form-select" id="right" name="right"><option value="">Choose…</option>{% for r in reviews %}<option value="{{ r.id }}" {{ 'selected' if right == r.id else '' }}>#{{ r.id }} · {{ r.title }}</option>{% endfor %}</select></div>
+  <div class="field mb-0"><button class="btn btn-primary w-100" type="submit"><i class="bi bi-columns-gap me-2"></i>Compare</button></div>
+</form></div>
+
+{% if result %}
+  <div class="grid grid-4 mb-4">
+    {% for label,value,accent in [('New findings', result.counts.new, '#F43F5E'),('Resolved', result.counts.resolved, '#10B981'),('Remaining', result.counts.remaining, '#F59E0B'),('Quality change', (result.right.quality - result.left.quality)|round(1), '#8B5CF6')] %}
+      <div class="stat-card" style="--accent:{{ accent }}"><div class="stat-label">{{ label }}</div><div class="stat-value">{{ value }}</div></div>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-3 mb-4">
+    <div class="panel"><h2>Baseline</h2><p class="text-muted">#{{ result.left.id }} · {{ result.left.title }}</p><div class="mini-list"><div class="mini-row"><span class="label">Findings</span><span class="value">{{ result.left.findings }}</span></div><div class="mini-row"><span class="label">Quality</span><span class="value">{{ result.left.quality }}</span></div><div class="mini-row"><span class="label">Risk</span><span class="value">{{ result.left.risk }}</span></div></div></div>
+    <div class="panel"><h2>Current</h2><p class="text-muted">#{{ result.right.id }} · {{ result.right.title }}</p><div class="mini-list"><div class="mini-row"><span class="label">Findings</span><span class="value">{{ result.right.findings }}</span></div><div class="mini-row"><span class="label">Quality</span><span class="value">{{ result.right.quality }}</span></div><div class="mini-row"><span class="label">Risk</span><span class="value">{{ result.right.risk }}</span></div></div></div>
+    <div class="panel"><h2>Verdict</h2><p class="text-muted">Directional assessment based on measured values.</p><div class="mini-list">{% for label,direction in result.verdicts.items() %}<div class="mini-row"><span class="label">{{ label|replace('_',' ')|title }}</span><span class="badge-soft {{ 'badge-good' if direction == 'improved' else 'badge-bad' if direction == 'regressed' else '' }}">{{ direction }}</span></div>{% endfor %}</div></div>
+  </div>
+
+  <div class="grid grid-3">
+    {% for title,rows,tone in [('New findings', result.new_findings, '#F43F5E'),('Resolved findings', result.resolved_findings, '#10B981'),('Remaining findings', result.remaining_findings, '#F59E0B')] %}
+      <div class="panel"><div class="panel-head"><div><h2>{{ title }}</h2><p>{{ rows|length }} item{{ '' if rows|length == 1 else 's' }}</p></div></div>
+        {% if rows %}<div class="mini-list">{% for row in rows %}<div class="mini-row" style="--accent:{{ tone }}"><span class="label"><strong>{{ row.title }}</strong><br><small class="text-muted">{{ row.rule_id }} · {{ row.file_name }}:{{ row.line }}</small></span><span class="badge-soft severity-{{ row.severity }}">{{ row.severity }}</span></div>{% endfor %}</div>{% else %}<div class="empty-chart"><i class="bi bi-check2-circle"></i><strong>None</strong></div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state"><i class="bi bi-columns-gap"></i><h3>Select two reviews</h3><p>Choose a baseline and a current review to see a deterministic comparison.</p></div>
+{% endif %}
+{% endblock %}

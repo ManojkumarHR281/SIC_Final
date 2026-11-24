@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Evidence Review{% endblock %}</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('ecr-theme') || 'dark';
+      var theme = saved === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        : saved;
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="{{ url_for('dashboard.dashboard') }}">
+      <span class="brand-mark"><i class="bi bi-shield-check"></i></span>
+      <span class="brand-text">Evidence<span>Review</span><small>AI code intelligence</small></span>
+    </a>
+    <button class="btn btn-ghost btn-sm" id="sidebarCollapse" type="button" aria-label="Collapse sidebar"><i class="bi bi-layout-sidebar-inset"></i></button>
+
+    <nav class="side-nav">
+      <div class="nav-group-label">Workspace</div>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/' else '' }}" data-tooltip="Dashboard" href="{{ url_for('dashboard.dashboard') }}"><i class="bi bi-grid-1x2"></i><span>Dashboard</span></a>
+      <a class="nav-item tooltip-host {{ 'active' if current_path.startswith('/review') else '' }}" data-tooltip="New review" href="{{ url_for('review.new_review') }}"><i class="bi bi-plus-square"></i><span>New review</span></a>
+      <a class="nav-item tooltip-host {{ 'active' if current_path.startswith('/history') else '' }}" data-tooltip="Review history" href="{{ url_for('history.history') }}"><i class="bi bi-clock-history"></i><span>Review history</span></a>
+
+      <div class="nav-group-label">Analysis</div>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/security' else '' }}" data-tooltip="Security" href="{{ url_for('analysis.security_dashboard') }}"><i class="bi bi-shield-lock"></i><span>Security</span></a>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/quality' else '' }}" data-tooltip="Code quality" href="{{ url_for('analysis.quality_dashboard') }}"><i class="bi bi-stars"></i><span>Code quality</span></a>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/analytics' else '' }}" data-tooltip="Analytics" href="{{ url_for('reports.analytics') }}"><i class="bi bi-activity"></i><span>Analytics</span></a>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/reports' else '' }}" data-tooltip="Reports" href="{{ url_for('reports.reports') }}"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/compare' else '' }}" data-tooltip="Compare" href="{{ url_for('reports.compare_page') }}"><i class="bi bi-columns-gap"></i><span>Compare</span></a>
+
+      <div class="nav-group-label">System</div>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/settings' else '' }}" data-tooltip="Settings" href="{{ url_for('settings.settings') }}"><i class="bi bi-sliders2"></i><span>Settings</span></a>
+      <a class="nav-item tooltip-host {{ 'active' if current_path == '/help' else '' }}" data-tooltip="Help and docs" href="{{ url_for('help.help_page') }}"><i class="bi bi-question-circle"></i><span>Help & docs</span></a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="engine-status"><span class="pulse-dot"></span><div><strong>Analysis engine online</strong><small>Local · no code execution</small></div></div>
+      <div class="profile-card"><span class="avatar">LR</span><div><strong>Local Reviewer</strong><small>Workspace owner</small></div></div>
+      <div class="version">EvidenceReview v{{ app_version }}</div>
+    </div>
+  </aside>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app-main">
+    <header class="topbar">
+      <button class="icon-button mobile-menu" id="menuToggle" type="button" aria-label="Toggle navigation"><i class="bi bi-list"></i></button>
+      <div class="topbar-title"><span class="crumb">Workspace</span><i class="bi bi-chevron-right"></i><span>{% block crumb %}Overview{% endblock %}</span></div>
+      <div class="topbar-actions">
+        <div class="global-search-wrap" style="position:relative">
+          <label class="global-search"><i class="bi bi-search"></i><input id="globalSearch" type="search" placeholder="Search reviews, files, findings…" autocomplete="off"><kbd>⌘J</kbd></label>
+          <div class="search-results" id="searchResults" hidden></div>
+        </div>
+        <button class="icon-button" id="commandButton" type="button" aria-label="Command palette" data-tooltip="Commands · Ctrl+K"><i class="bi bi-command"></i></button>
+        <button class="icon-button" id="themeButton" type="button" aria-label="Theme"><i class="bi bi-circle-half"></i></button>
+        <div class="popover" id="themeMenu" hidden>
+          <div class="popover-head">Appearance</div>
+          <div class="theme-options">
+            <button class="popover-item" type="button" data-theme-choice="dark"><i class="bi bi-moon-stars"></i><div><strong>Dark</strong><small>Default professional theme</small></div></button>
+            <button class="popover-item" type="button" data-theme-choice="light"><i class="bi bi-sun"></i><div><strong>Light</strong><small>High-contrast workspace</small></div></button>
+            <button class="popover-item" type="button" data-theme-choice="system"><i class="bi bi-display"></i><div><strong>System</strong><small>Follow device preference</small></div></button>
+          </div>
+        </div>
+        <button class="icon-button" id="notificationButton" type="button" aria-label="Notifications"><i class="bi bi-bell"></i><span class="notification-dot"></span></button>
+        <div class="popover" id="notificationMenu" hidden>
+          <div class="popover-head">Notifications</div>
+          <div class="popover-item"><i class="bi bi-shield-check"></i><div><strong>Local analysis active</strong><small>Submitted source is never executed.</small></div></div>
+          <div class="popover-item"><i class="bi bi-file-earmark-lock"></i><div><strong>Private workspace</strong><small>Reviews are stored locally in SQLite.</small></div></div>
+          <div class="popover-item"><i class="bi bi-stars"></i><div><strong>AI provider optional</strong><small>Disabled unless explicitly configured.</small></div></div>
+        </div>
+        <button class="avatar" id="userButton" type="button" aria-label="User menu">LR</button>
+        <div class="popover" id="userMenu" hidden>
+          <div class="popover-head">Local Reviewer</div>
+          <a class="popover-item" href="{{ url_for('settings.settings') }}"><i class="bi bi-sliders2"></i><div><strong>Preferences</strong><small>Open workspace settings</small></div></a>
+          <a class="popover-item" href="{{ url_for('help.help_page') }}"><i class="bi bi-question-circle"></i><div><strong>Help & documentation</strong><small>Review workflow and limitations</small></div></a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="app-alert alert-{{ 'danger' if category in ('error', 'danger') else category if category in ('success', 'warning', 'info') else 'info' }}">
+            <i class="bi bi-{{ 'exclamation-octagon' if category in ('error', 'danger') else 'check-circle' if category == 'success' else 'info-circle' }}"></i>
+            <span>{{ message }}</span>
+            <button type="button" class="alert-close" data-dismiss-alert aria-label="Dismiss"><i class="bi bi-x"></i></button>
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<div class="modal-backdrop-custom" id="appModal" hidden>
+  <div class="modal-dialog-custom" role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+    <div class="modal-head"><h3 id="appModalTitle">Details</h3><button type="button" class="icon-button" data-close-modal aria-label="Close"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body" id="appModalBody"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop-custom" id="commandPalette" hidden>
+  <div class="modal-dialog-custom" role="dialog" aria-modal="true" aria-label="Command palette">
+    <input class="command-input" id="commandInput" placeholder="Search pages, actions and recent reviews…" autocomplete="off">
+    <div class="command-list" id="commandList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

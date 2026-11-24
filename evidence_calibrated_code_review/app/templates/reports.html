@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Reports · Evidence Review{% endblock %}
+{% block crumb %}Reports{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">Workspace</div><h1>Report center</h1><p>Export evidence-rich reports from any saved review.</p></div><a class="btn btn-outline-light" href="{{ url_for('reports.compare_page') }}"><i class="bi bi-columns-gap me-2"></i>Compare reviews</a></div>
+
+<div class="grid grid-4 mb-4">
+  {% for format in formats %}<div class="panel"><div class="stat-icon mb-3"><i class="bi {{ format.icon }}"></i></div><h2>{{ format.label }}</h2><p>{{ format.description }}</p><span class="badge-soft mt-3">{{ format.id|upper }}</span></div>{% endfor %}
+</div>
+
+<div class="panel">
+  <div class="panel-head"><div><h2>Available reports</h2><p>Choose a review and download in your preferred format.</p></div></div>
+  {% if reviews %}<div class="table-scroll"><table class="data-table"><thead><tr><th>Review</th><th>Date</th><th>Findings</th><th>Quality</th><th class="text-end">Exports</th></tr></thead><tbody>
+    {% for r in reviews %}<tr>
+      <td><a class="table-link" href="{{ url_for('review.results', review_id=r.id) }}">{{ r.title }}</a><div class="text-muted small">{{ r.language|title }} · {{ r.file_count }} file{{ '' if r.file_count == 1 else 's' }}</div></td>
+      <td>{{ r.created_at.strftime('%b %d, %Y') if r.created_at else '—' }}</td><td>{{ r.total_findings }}</td><td>{{ '%.0f'|format(r.quality_score) }}</td>
+      <td><div class="d-flex justify-content-end gap-1">
+        <a class="btn btn-sm btn-light" href="{{ url_for('review.export_pdf', review_id=r.id) }}">PDF</a>
+        <a class="btn btn-sm btn-outline-light" href="{{ url_for('review.export_json', review_id=r.id) }}">JSON</a>
+        <a class="btn btn-sm btn-outline-light" href="{{ url_for('review.export_csv', review_id=r.id) }}">CSV</a>
+        <a class="btn btn-sm btn-outline-light" href="{{ url_for('review.report', review_id=r.id) }}">MD</a>
+      </div></td>
+    </tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state"><i class="bi bi-file-earmark-bar-graph"></i><h3>No reports available</h3><p>Complete a review to generate exportable reports.</p><a class="btn btn-primary" href="{{ url_for('review.new_review') }}">Start a review</a></div>{% endif %}
+</div>
+{% endblock %}

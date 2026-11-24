@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+.pytest_cache/
+.test-tmp/
+*.py[cod]
+instance/*.sqlite3
+.env
+uploads/*
+datasets/*
+!datasets/README.md
+trained_models/*

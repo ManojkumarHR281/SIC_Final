@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Not found · Evidence Review{% endblock %}
+{% block crumb %}Not found{% endblock %}
+{% block content %}
+<div class="empty-state"><i class="bi bi-signpost-split"></i><h3>Page not found</h3><p>The review or page you requested does not exist.</p><a class="btn btn-primary" href="{{ url_for('dashboard.dashboard') }}">Back to dashboard</a></div>
+{% endblock %}

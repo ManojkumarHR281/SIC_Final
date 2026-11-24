@@ -1,0 +1,426 @@
+<!-- Act as an award-winning UI/UX designer and senior frontend engineer specializing in premium SaaS applications, developer tools and AI-powered platforms.
+
+PROJECT:
+Evidence-Calibrated Code Review.
+
+TASK:
+I want another major improvement to the entire application's UI/UX.
+
+The existing UI must be upgraded to look like a premium, professionally designed commercial AI developer platform.
+
+IMPORTANT:
+Do not just change colors.
+Do not simply add more cards.
+Do not make superficial CSS changes.
+
+Completely rethink the visual presentation, layouts, interactions, typography, spacing, components and user experience.
+
+Preserve all existing backend functionality.
+
+==================================================
+1. DESIGN INSPIRATION
+==================================================
+
+Use design inspiration from:
+
+- Linear.
+- Vercel.
+- Cursor.
+- GitHub.
+- Raycast.
+- Modern cybersecurity platforms.
+- Premium AI SaaS dashboards.
+
+Create a unique visual identity for Evidence-Calibrated Code Review.
+
+The application should feel modern, intelligent, sophisticated and professional.
+
+==================================================
+2. DESIGN SYSTEM
+==================================================
+
+Create a consistent design system.
+
+COLOR PALETTE:
+
+Primary background: #090D18
+Secondary background: #0D1424
+Sidebar: #080C16
+Card background: #111A2B
+Elevated surface: #172338
+Primary accent: #8B5CF6
+Secondary accent: #6366F1
+Cyan accent: #22D3EE
+Success: #10B981
+Warning: #F59E0B
+Danger: #F43F5E
+Primary text: #F8FAFC
+Secondary text: #94A3B8
+Border: rgba(148,163,184,0.12)
+
+Use gradients carefully.
+
+Create:
+- Global typography system.
+- Spacing scale.
+- Border radius system.
+- Shadow system.
+- Button variants.
+- Input variants.
+- Card variants.
+- Badge variants.
+- Modal variants.
+
+Ensure every page uses the same design language.
+
+==================================================
+3. PREMIUM APPLICATION SHELL
+==================================================
+
+Redesign the complete application shell.
+
+SIDEBAR:
+
+- Modern floating sidebar.
+- Collapsible navigation.
+- Premium logo presentation.
+- Active navigation indicator.
+- Beautiful icons.
+- Smooth hover transitions.
+- Tooltips.
+- User profile section.
+- Application version.
+
+HEADER:
+
+- Global search.
+- Command palette.
+- Breadcrumb navigation.
+- Notification center.
+- Theme controls.
+- User menu.
+
+The sidebar and header must look consistent across all pages.
+
+==================================================
+4. DASHBOARD VISUAL TRANSFORMATION
+==================================================
+
+Create a stunning dashboard.
+
+TOP SECTION:
+
+- Personalized welcome heading.
+- Short dashboard description.
+- Current date.
+- New Review primary action.
+
+STATISTICS:
+
+Create elegant statistics cards with:
+
+- Animated number counters.
+- Icons.
+- Trend indicators.
+- Subtle gradients.
+- Hover effects.
+- Small sparkline charts where appropriate.
+
+ANALYTICS:
+
+Create a visually impressive chart section:
+
+- Vulnerability trends.
+- Severity distribution.
+- Review activity.
+- Confidence distribution.
+- Code quality trends.
+
+Use interactive charts.
+
+RECENT ACTIVITY:
+
+Create a modern activity timeline.
+
+Include:
+- File name.
+- Review status.
+- Findings.
+- Date.
+- Severity.
+- Quick actions.
+
+Avoid clutter.
+
+==================================================
+5. ADVANCED CODE REVIEW WORKSPACE
+==================================================
+
+This page should become one of the best-looking pages in the application.
+
+Create an IDE-inspired workspace.
+
+LAYOUT:
+
+LEFT PANEL:
+- File explorer.
+- Uploaded files.
+- File information.
+- Language indicator.
+
+CENTER PANEL:
+- Monaco code editor.
+- Syntax highlighting.
+- Line numbers.
+- Minimap.
+- Editor toolbar.
+- Error and warning markers.
+
+RIGHT PANEL:
+- Analysis summary.
+- Detected findings.
+- Severity indicators.
+- Confidence scores.
+
+BOTTOM PANEL:
+- Problems.
+- Evidence.
+- Analysis logs.
+- Review summary.
+
+Make panels resizable if practical.
+
+Allow users to collapse panels.
+
+When a finding is selected, navigate to the relevant line in the editor.
+
+Do not compromise editor usability.
+
+==================================================
+6. REVIEW RESULTS EXPERIENCE
+==================================================
+
+Make review results visually impressive.
+
+Create:
+
+- Overall quality score visualization.
+- Security risk indicator.
+- Severity breakdown.
+- Confidence visualization.
+- Uncertainty visualization.
+- Interactive findings list.
+
+Finding cards should expand smoothly.
+
+Each card should show:
+
+- Issue name.
+- Severity.
+- Category.
+- File.
+- Line number.
+- Confidence.
+- Uncertainty.
+
+Expanded view should show:
+
+- Evidence.
+- Explanation.
+- Impact.
+- Suggested fix.
+- Before-and-after code.
+
+Use distinct colors for severity levels.
+
+==================================================
+7. MICRO-INTERACTIONS
+==================================================
+
+Add polished interactions throughout the application.
+
+Examples:
+
+- Smooth button hover.
+- Subtle card lift.
+- Animated active navigation.
+- Smooth dropdowns.
+- Modal transitions.
+- Toast notifications.
+- Animated loading indicators.
+- Skeleton screens.
+- Progress indicators.
+- Copy-to-clipboard feedback.
+- Expand and collapse animations.
+
+Use Framer Motion only if compatible with the existing frontend stack. Otherwise use lightweight CSS animations.
+
+Respect reduced-motion accessibility preferences.
+
+Avoid excessive animations.
+
+==================================================
+8. COMMAND PALETTE
+==================================================
+
+Implement a professional command palette.
+
+Keyboard shortcut:
+
+Ctrl + K.
+
+Allow users to search for:
+
+- Dashboard.
+- New Review.
+- Review History.
+- Security Analysis.
+- Code Quality.
+- Reports.
+- Settings.
+
+Also include useful actions:
+
+- Start new review.
+- Upload file.
+- Open recent review.
+- Change theme.
+
+==================================================
+9. GLOBAL SEARCH
+==================================================
+
+Create a functional global search.
+
+Search across:
+
+- Review history.
+- File names.
+- Finding titles.
+- Report names.
+
+Display grouped search results.
+
+Add keyboard navigation.
+
+==================================================
+10. THEME SYSTEM
+==================================================
+
+Implement:
+
+- Dark theme.
+- Light theme.
+- System theme.
+
+The dark theme should be the default.
+
+Make sure every component supports all themes.
+
+Persist the selected theme.
+
+==================================================
+11. PROFESSIONAL EMPTY STATES
+==================================================
+
+Every page must have attractive empty states.
+
+Examples:
+
+- No reviews yet.
+- No vulnerabilities found.
+- No reports generated.
+- No uploaded files.
+- No search results.
+
+Use elegant icons and helpful actions.
+
+==================================================
+12. RESPONSIVE DESIGN
+==================================================
+
+Make the complete interface responsive.
+
+Desktop:
+- Full dashboard.
+- Expanded sidebar.
+- Multi-panel editor.
+
+Tablet:
+- Collapsible sidebar.
+- Adaptive cards.
+- Flexible panels.
+
+Mobile:
+- Mobile navigation.
+- Stacked cards.
+- Responsive tables.
+- Usable editor.
+- Touch-friendly controls.
+
+==================================================
+13. UI QUALITY CONTROL
+==================================================
+
+Inspect every page after implementation.
+
+Check:
+
+- Consistent spacing.
+- Consistent typography.
+- Alignment.
+- Color contrast.
+- Button consistency.
+- Responsive behavior.
+- Hover states.
+- Focus states.
+- Loading states.
+- Empty states.
+- Modal behavior.
+- Navigation behavior.
+
+Fix visual defects.
+
+Do not leave unfinished components.
+
+==================================================
+14. IMPORTANT RESTRICTIONS
+==================================================
+
+- Do not rebuild the backend.
+- Do not delete working features.
+- Do not use hardcoded analytics.
+- Do not add decorative buttons without functionality.
+- Do not introduce unnecessary dependencies.
+- Do not break Flask templates.
+- Do not break existing API routes.
+- Do not replace working functionality with mockups.
+- Do not redesign only one page.
+- Maintain consistent design across the entire application.
+
+==================================================
+15. FINAL EXPECTATION
+==================================================
+
+The final UI should look like a premium AI developer platform that could compete visually with modern SaaS products.
+
+I want the interface to be:
+
+- Visually impressive.
+- Elegant.
+- Modern.
+- Interactive.
+- Consistent.
+- Professional.
+- Responsive.
+- Easy to navigate.
+
+Actually modify the existing frontend files.
+
+Do not just provide design suggestions.
+
+After implementation, run the application and inspect all pages.
+
+Fix all visual and functional defects.
+
+Provide a summary of all UI changes and files modified. -->

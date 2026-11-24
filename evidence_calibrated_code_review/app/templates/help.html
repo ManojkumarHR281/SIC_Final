@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Help & docs · Evidence Review{% endblock %}
+{% block crumb %}Help{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">System</div><h1>Help & documentation</h1><p>How to review code, interpret evidence, and use the workspace.</p></div></div>
+
+<div class="grid grid-2">
+  <div class="panel"><div class="panel-head"><div><h2>Review workflow</h2><p>Five steps from source to decision.</p></div></div>
+    {% for title,body in guide %}<div class="guide-step"><div class="guide-number">{{ loop.index }}</div><div><strong>{{ title }}</strong><p>{{ body }}</p></div></div>{% endfor %}
+  </div>
+  <div>
+    <div class="panel mb-4"><div class="panel-head"><div><h2>Keyboard shortcuts</h2><p>Work faster in the analysis workspace.</p></div></div>
+      <div class="mini-list">{% for keys,description in shortcuts %}<div class="mini-row"><span class="label">{{ description }}</span><kbd>{{ keys }}</kbd></div>{% endfor %}</div>
+    </div>
+    <div class="panel"><div class="panel-head"><div><h2>Important limitations</h2></div></div>
+      <div class="warning-box">Static analysis cannot prove runtime behavior. Python receives full AST-based coverage; other languages receive deterministic pattern checks only. AI explanations are optional and require a configured endpoint; otherwise the app clearly reports that the feature is disabled.</div>
+      <div class="rationale-box mt-3">Confidence is an evidence-weighted heuristic estimate. It is deliberately labelled as not empirically calibrated. Always inspect the snippet, rule identifier and evidence before acting on a finding.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

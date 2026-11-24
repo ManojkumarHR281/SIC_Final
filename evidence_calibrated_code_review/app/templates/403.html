@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Forbidden · Evidence Review{% endblock %}
+{% block crumb %}Forbidden{% endblock %}
+{% block content %}
+<div class="empty-state"><i class="bi bi-lock"></i><h3>Access denied</h3><p>You do not have permission to view this resource.</p><a class="btn btn-primary" href="{{ url_for('dashboard.dashboard') }}">Back to dashboard</a></div>
+{% endblock %}
